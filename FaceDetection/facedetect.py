@@ -2,6 +2,7 @@ from __future__ import print_function
 import cv2 as cv
 import argparse
 import time
+import collections
 
 #Code modified from several tutorials:
 # https://docs.opencv.org/4.x/db/d28/tutorial_cascade_classifier.html
@@ -24,7 +25,10 @@ def detectAndDisplay(frame, fps):
             radius = int(round((w2 + h2)*0.25))
             frame = cv.circle(frame, eye_center, radius, (255, 0, 0 ), 4)
     # putting the FPS count on the frame
-    cv.putText(frame, fps, (7, 15), font, 1, (100, 255, 0), 3, cv.LINE_AA)
+    h,w,c = frame.shape
+    frame_size_str = "h:"+str(h)+",w:"+str(w)
+    cv.putText(frame, frame_size_str, (7, 15), font, 0.5, (255, 0, 0), 1, cv.LINE_AA)
+    cv.putText(frame, fps,            (7, 30), font, 0.5, (255, 0, 0), 1, cv.LINE_AA)
     cv.imshow('Capture - Face detection', frame)
 
 parser = argparse.ArgumentParser(description='Code for Cascade Classifier tutorial.')
@@ -54,6 +58,8 @@ cap = cv.VideoCapture(camera_device)
 prev_frame_time = 0
 # used to record the time at which we processed current frame
 new_frame_time = 0
+# used to make the fps number easier to read
+fps_smooth_dqueue = collections.deque(maxlen = 90)
 
 if not cap.isOpened:
     print('--(!)Error opening video capture')
@@ -75,15 +81,19 @@ while True:
     fps = 1/(new_frame_time-prev_frame_time)
     prev_frame_time = new_frame_time
 
+    # smooth the FPS so it doesn't jump every frame
+    fps_smooth_dqueue.append(fps)
+    fps = sum(fps_smooth_dqueue)/len(fps_smooth_dqueue)
+
     # converting the fps into integer
     fps = int(fps)
  
     # converting the fps to string so that we can display it on frame
     # by using putText function
-    fps = str(fps)
+    fps_str = "fps:"+str(fps)
  
 
-    detectAndDisplay(frame, fps)
+    detectAndDisplay(frame, fps_str)
     #exit when you receive the ESC key
     if cv.waitKey(10) == 27:
         break
